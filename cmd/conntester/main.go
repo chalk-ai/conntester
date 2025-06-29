@@ -29,7 +29,7 @@ func main() {
 	pgURI := flag.String("uri", "", "PostgreSQL connection URI (required)")
 	timeout := flag.Int("timeout", defaultTimeout, "Connection timeout in seconds")
 	statsdAddr := flag.String("statsd", "127.0.0.1:8125", "StatsD server address")
-	repeat := flag.Bool("repeat", false, "Run the test every 1 second")
+	repeat := flag.Float64("repeat", 0, "Repeat delay in seconds (0 = no repeat, default 1 second if used without value)")
 	tags := flag.String("tags", "", "Custom tags in format k:v,k:v to add to metrics")
 	flag.Parse()
 
@@ -54,9 +54,15 @@ func main() {
 	customTags := parseTags(*tags)
 
 	// Test the connection once or repeatedly
-	if *repeat {
-		fmt.Println("Starting repeated connection tests every 1 second...")
-		ticker := time.NewTicker(1 * time.Second)
+	if *repeat > 0 {
+		// If repeat is specified but very small, default to 1 second
+		delay := *repeat
+		if delay < 0.001 {
+			delay = 1.0
+		}
+		
+		fmt.Printf("Starting repeated connection tests every %.3f seconds...\n", delay)
+		ticker := time.NewTicker(time.Duration(delay * float64(time.Second)))
 		defer ticker.Stop()
 
 		for {
